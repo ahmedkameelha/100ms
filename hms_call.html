@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>V2V Call</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video V2V</title>
+  
   <!-- This script MUST come BEFORE your hms-bundle.js -->
   <script>
     window.process = { env: { NODE_ENV: 'production' } };
@@ -12,14 +12,15 @@
 
   <!-- IMPORTANT: PASTE YOUR SCRIPT URL HERE -->
   <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@f09a25e53fb1f373631533a97e763cf1bde205e4/hms-bundle.js"></script>
-
-  <!-- Fonts & Icons -->
+  
+  <!-- Fonts and Icons for the Google Meet look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-
+  
   <style>
+    /* --- Base Styles & Google Meet Theme --- */
     :root {
       --bg-color: #202124;
       --surface-color: #3c4043;
@@ -32,113 +33,196 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      width: 100%; height: 100%;
-      background: var(--bg-color);
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
       color: var(--primary-text);
       font-family: var(--font-family);
       overflow: hidden;
     }
 
+    /* --- Main Layout --- */
     #container {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
-
-    /* Grid for peers */
-    #peers-container {
-      flex: 1;
+    
+    #video-grid {
+      flex-grow: 1;
+      width: 100%;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      grid-auto-rows: minmax(180px, 1fr);
-      gap: 12px;
-      padding: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      padding: 16px;
+      align-content: center;
+      justify-content: center;
     }
 
+    /* --- Video Tiles --- */
     .video-tile {
       position: relative;
-      background: #282a2d;
-      border-radius: 10px;
+      background-color: #303134;
+      border-radius: 12px;
       overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
     .video-tile video {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
     }
-
-    .avatar-circle {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: var(--surface-color);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 32px; font-weight: 500;
-      color: var(--primary-text);
+    .video-tile.local video {
+        transform: scaleX(-1); /* Mirror local video */
     }
 
+    /* --- Animated Speaking Indicator --- */
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(138, 180, 248, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0); }
+    }
+    .speaking-indicator {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        border: 3px solid var(--blue-accent);
+        animation: pulse 1.5s infinite;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .video-tile.speaking .speaking-indicator {
+        opacity: 1;
+    }
+
+    /* --- Avatar Placeholders --- */
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .avatar-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background-color: var(--surface-color);
+      font-size: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 500;
+    }
+    
+    /* --- Overlays --- */
     .video-overlay {
       position: absolute;
-      bottom: 8px; left: 8px;
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(0,0,0,0.6);
-      padding: 4px 10px; border-radius: 20px;
-      font-size: 14px; font-weight: 500;
+      bottom: 8px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
     }
-    .mute-icon { color: var(--primary-text); }
+    .mute-icon { font-size: 14px; color: var(--red-accent); }
 
-    /* Control bar */
+    /* --- Control Bar --- */
     #controls {
       position: absolute;
-      bottom: 24px; left: 50%;
+      bottom: 24px;
+      left: 50%;
       transform: translateX(-50%);
-      display: flex; gap: 12px;
-      opacity: 0; visibility: hidden;
-      transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px;
+      border-radius: 36px;
+      background: rgba(40, 42, 45, 0.8);
+      backdrop-filter: blur(5px);
     }
-    #container:hover #controls,
-    #container.controls-visible #controls {
-      opacity: 1; visibility: visible;
-    }
+
+    /* --- Control Buttons & Tooltips --- */
     .btn-wrapper { position: relative; }
     .btn {
       background: var(--surface-color);
-      border: none; width: 56px; height: 56px;
-      border-radius: 50%; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      border: none;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    .btn i { color: var(--primary-text); font-size: 22px; }
     .btn:hover { background: var(--hover-color); }
-    .btn.toggled-off { background: var(--red-accent) !important; }
-    .btn.toggled-off:hover { background: #d93025 !important; }
-    #endBtn { background: var(--red-accent); }
-    #endBtn:hover { background: #d93025; }
+    .btn i { color: var(--primary-text); font-size: 22px; }
+    .btn.toggled-off { background-color: var(--red-accent) !important; }
+    .btn.toggled-off:hover { background-color: #d93025 !important; }
+    #endBtn { background-color: var(--red-accent); }
+    #endBtn:hover { background-color: #d93025; }
 
     .tooltip {
-      position: absolute;
-      bottom: 110%; left: 50%;
-      transform: translateX(-50%);
-      background: #4f5154;
-      color: #fff; padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      opacity: 0; visibility: hidden;
-      transition: opacity 0.2s;
+        position: absolute;
+        bottom: 120%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4f5154;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s, visibility 0.2s;
+        pointer-events: none;
     }
     .btn-wrapper:hover .tooltip {
-      opacity: 1; visibility: visible;
+        opacity: 1;
+        visibility: visible;
     }
-
+    
+    /* --- Status Text --- */
+    #status-container {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-color);
+      z-index: 100;
+    }
     #status {
       font-size: 20px;
       color: var(--secondary-text);
       text-align: center;
-      margin-top: 20px;
     }
   </style>
 </head>
 <body>
+
   <div id="container">
-    <div id="status">Connecting...</div>
-    <div id="peers-container"></div>
+    <div id="video-grid"></div>
+
+    <div id="status-container">
+        <div id="status">Connecting...</div>
+    </div>
 
     <div id="controls">
       <div class="btn-wrapper">
@@ -146,36 +230,44 @@
         <div class="tooltip" id="micTooltip">Mute</div>
       </div>
       <div class="btn-wrapper">
-        <button class="btn" id="endBtn"><i class="fa-solid fa-phone"></i></button>
-        <div class="tooltip">Leave call</div>
-      </div>
-      <div class="btn-wrapper">
         <button class="btn" id="camBtn"><i class="fa-solid fa-video"></i></button>
         <div class="tooltip" id="camTooltip">Turn off camera</div>
+      </div>
+      <div class="btn-wrapper">
+        <button class="btn" id="endBtn"><i class="fa-solid fa-phone"></i></button>
+        <div class="tooltip">Leave call</div>
       </div>
     </div>
   </div>
 
   <script>
+    // --- State and Elements ---
     let hmsManager, hmsStore, hmsActions;
-    const { selectPeers, selectIsLocalAudioEnabled, selectIsLocalVideoEnabled, selectIsConnectedToRoom } = window.HMSReactiveStore;
+    const { 
+      selectPeers, 
+      selectIsLocalAudioEnabled, 
+      selectIsLocalVideoEnabled, 
+      selectIsConnectedToRoom, 
+      selectSpeakers 
+    } = window.HMSReactiveStore;
 
-    const statusEl = document.getElementById("status");
-    const peersContainer = document.getElementById("peers-container");
-    const containerEl = document.getElementById("container");
+    const statusContainer = document.getElementById('status-container');
+    const statusEl = document.getElementById('status');
+    const videoGrid = document.getElementById('video-grid');
 
+    // --- Get URL Parameters ---
     function getParams() {
       const params = new URLSearchParams(window.location.search);
-      return {
-        userName: params.get("userName") || "Guest",
-        roomId: params.get("roomId")
-      };
+      const userName = params.get('userName') || 'Guest';
+      const roomId = params.get('roomId');
+      return { roomId, userName };
     }
 
+    // --- Core HMS Functions ---
     async function initHMS() {
       try {
         const { roomId, userName } = getParams();
-        if (!roomId) throw new Error("Room ID missing!");
+        if (!roomId) throw new Error('Room ID is missing from URL!');
 
         hmsManager = new window.HMSReactiveStore();
         hmsManager.triggerOnSubscribe();
@@ -184,99 +276,152 @@
 
         const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
         await hmsActions.join({ userName, authToken });
-
+        
         hmsStore.subscribe(onConnectionUpdate, selectIsConnectedToRoom);
         hmsStore.subscribe(renderPeers, selectPeers);
         hmsStore.subscribe(updateMicButton, selectIsLocalAudioEnabled);
         hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
-      } catch (err) {
-        console.error(err);
-        statusEl.innerText = "Error: " + err.message;
+        hmsStore.subscribe(updateSpeakers, selectSpeakers);
+
+      } catch (error) {
+        console.error("Error initializing or joining room:", error);
+        statusEl.innerText = `Error: ${error.message}`;
       }
     }
-
+    
     function onConnectionUpdate(isConnected) {
-      if (isConnected) statusEl.style.display = "none";
+        if(isConnected) {
+            console.log("Successfully connected to the room!");
+            statusContainer.style.display = 'none';
+        } else {
+            videoGrid.innerHTML = '';
+            statusContainer.style.display = 'flex';
+        }
     }
 
     function renderPeers(peers) {
-      peersContainer.innerHTML = "";
-      peers.forEach(peer => {
-        const tile = document.createElement("div");
-        tile.className = "video-tile";
-        tile.id = `tile-${peer.id}`;
+        if (!hmsActions || !Array.isArray(peers)) return;
 
-        const video = document.createElement("video");
-        video.autoplay = true;
-        video.playsInline = true;
-        if (peer.isLocal) video.muted = true;
+        // --- Remove tiles for peers who have left ---
+        const existingPeerIDs = [...videoGrid.children].map(tile => tile.dataset.peerId);
+        const currentPeerIDs = peers.map(peer => peer.id);
+        existingPeerIDs.forEach(peerId => {
+            if (!currentPeerIDs.includes(peerId)) {
+                const tile = document.getElementById(`tile-${peerId}`);
+                if (tile) tile.remove();
+            }
+        });
 
-        if (peer.videoTrack && peer.videoTrack.stream) {
-          video.srcObject = peer.videoTrack.stream;
-        } else {
-          const avatar = document.createElement("div");
-          avatar.className = "avatar-circle";
-          avatar.innerText = peer.name.charAt(0).toUpperCase();
-          tile.appendChild(avatar);
-        }
+        // --- Add or Update tiles for current peers ---
+        peers.forEach(peer => {
+            let tile = document.getElementById(`tile-${peer.id}`);
+            if (!tile) {
+                tile = document.createElement('div');
+                tile.id = `tile-${peer.id}`;
+                tile.className = 'video-tile';
+                if(peer.isLocal) tile.classList.add('local');
+                tile.dataset.peerId = peer.id;
+                tile.innerHTML = `
+                    <div class="speaking-indicator"></div>
+                    <video autoplay muted playsinline></video>
+                    <div class="avatar-placeholder">
+                        <div class="avatar-circle"></div>
+                    </div>
+                    <div class="video-overlay">
+                        <i class="fa-solid fa-microphone-slash mute-icon" style="display: none;"></i>
+                        <span class="peer-name"></span>
+                    </div>
+                `;
+                videoGrid.appendChild(tile);
+            }
 
-        const overlay = document.createElement("div");
-        overlay.className = "video-overlay";
-        overlay.innerHTML = `
-          ${(peer.audioTrack && peer.audioTrack.enabled) ? "" : '<i class="fa-solid fa-microphone-slash mute-icon"></i>'}
-          <span>${peer.isLocal ? "You" : peer.name}</span>
-        `;
+            // --- Update elements inside the tile ---
+            const videoEl = tile.querySelector('video');
+            const avatarPlaceholder = tile.querySelector('.avatar-placeholder');
+            const avatarCircle = tile.querySelector('.avatar-circle');
+            const nameTag = tile.querySelector('.peer-name');
+            const muteIcon = tile.querySelector('.mute-icon');
 
-        tile.appendChild(video);
-        tile.appendChild(overlay);
-        peersContainer.appendChild(tile);
-      });
+            // Set Name and Avatar
+            nameTag.innerText = peer.isLocal ? 'You' : peer.name;
+            avatarCircle.innerText = peer.name.charAt(0).toUpperCase();
+
+            // Handle Video
+            const videoTrackId = peer.videoTrack;
+            if (videoTrackId) {
+                videoEl.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
+                // Use the SDK's attachVideo method
+                hmsActions.attachVideo(videoTrackId, videoEl);
+            } else {
+                videoEl.style.display = 'none';
+                avatarPlaceholder.style.display = 'flex';
+            }
+
+            // Handle Audio Mute Icon
+            const audioTrackId = peer.audioTrack;
+            const isAudioEnabled = audioTrackId ? hmsStore.getState(s => s.tracks[audioTrackId]?.enabled) : false;
+            muteIcon.style.display = isAudioEnabled ? 'none' : 'block';
+        });
+    }
+
+
+    function updateSpeakers(speakers) {
+        const allTiles = document.querySelectorAll('.video-tile');
+        allTiles.forEach(tile => tile.classList.remove('speaking'));
+
+        if (!Array.isArray(speakers)) return;
+
+        speakers.forEach(speaker => {
+            const tile = document.getElementById(`tile-${speaker.peer.id}`);
+            if (tile) {
+                tile.classList.add('speaking');
+            }
+        });
     }
 
     function updateMicButton(isAudioEnabled) {
-      const btn = document.getElementById("micBtn");
-      const tip = document.getElementById("micTooltip");
-      btn.classList.toggle("toggled-off", !isAudioEnabled);
-      btn.querySelector("i").className = isAudioEnabled ? "fa-solid fa-microphone" : "fa-solid fa-microphone-slash";
-      tip.innerText = isAudioEnabled ? "Mute" : "Unmute";
+        const micBtn = document.getElementById('micBtn');
+        const micTooltip = document.getElementById('micTooltip');
+        micBtn.classList.toggle('toggled-off', !isAudioEnabled);
+        micBtn.querySelector('i').className = isAudioEnabled ? 'fa-solid fa-microphone' : 'fa-solid fa-microphone-slash';
+        micTooltip.innerText = isAudioEnabled ? 'Mute' : 'Unmute';
     }
 
     function updateCamButton(isVideoEnabled) {
-      const btn = document.getElementById("camBtn");
-      const tip = document.getElementById("camTooltip");
-      btn.classList.toggle("toggled-off", !isVideoEnabled);
-      btn.querySelector("i").className = isVideoEnabled ? "fa-solid fa-video" : "fa-solid fa-video-slash";
-      tip.innerText = isVideoEnabled ? "Turn off camera" : "Turn on camera";
+        const camBtn = document.getElementById('camBtn');
+        const camTooltip = document.getElementById('camTooltip');
+        camBtn.classList.toggle('toggled-off', !isVideoEnabled);
+        camBtn.querySelector('i').className = isVideoEnabled ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
+        camTooltip.innerText = isVideoEnabled ? 'Turn off camera' : 'Turn on camera';
     }
 
-    // Controls
-    document.getElementById("micBtn").addEventListener("click", () => {
-      const isEnabled = hmsStore.getState(window.HMSReactiveStore.selectIsLocalAudioEnabled);
+    // --- Controls ---
+    document.getElementById('micBtn').addEventListener('click', () => {
+      const isEnabled = hmsStore.getState(selectIsLocalAudioEnabled);
       hmsActions.setLocalAudioEnabled(!isEnabled);
     });
-    document.getElementById("camBtn").addEventListener("click", () => {
-      const isEnabled = hmsStore.getState(window.HMSReactiveStore.selectIsLocalVideoEnabled);
+
+    document.getElementById('camBtn').addEventListener('click', () => {
+      const isEnabled = hmsStore.getState(selectIsLocalVideoEnabled);
       hmsActions.setLocalVideoEnabled(!isEnabled);
     });
-    document.getElementById("endBtn").addEventListener("click", () => {
-      hmsActions.leave();
-      statusEl.innerText = "You have left the room.";
-      statusEl.style.display = "block";
-      peersContainer.innerHTML = "";
+
+    document.getElementById('endBtn').addEventListener('click', async () => {
+      try {
+        await hmsActions.leave();
+        statusEl.innerText = 'You have left the room.';
+        statusContainer.style.display = 'flex';
+      } catch (error) { console.error("Error on leave:", error); }
     });
 
-    // Auto-hide controls
-    let controlsTimeout;
-    containerEl.addEventListener("mousemove", () => {
-      containerEl.classList.add("controls-visible");
-      clearTimeout(controlsTimeout);
-      controlsTimeout = setTimeout(() => {
-        containerEl.classList.remove("controls-visible");
-      }, 3000);
-    });
 
     window.onload = initHMS;
+    window.onunload = async () => {
+      if (hmsActions) {
+        await hmsActions.leave();
+      }
+    };
   </script>
 </body>
 </html>
-
