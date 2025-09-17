@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HMS Web Video Call</title>
+  <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@cf8c9aa17a5dd7ce6e6e2f086e7ce47ffff7b4e9/hms-bundle.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body, html { width: 100%; height: 100%; background: #1a1a1a; overflow: hidden; }
+    #container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+    #videos { flex: 1; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+    video { border-radius: 8px; background: black; object-fit: cover; margin: 4px; }
+    #localVideo { position: absolute; bottom: 90px; right: 20px; width: 240px; height: 135px; border: 2px solid #fff; z-index: 10; }
+    #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); height: 70px; background: rgba(30, 30, 30, 0.9); display: flex; justify-content: center; align-items: center; gap: 16px; border-radius: 35px; padding: 0 20px; z-index: 10; }
+    .btn { background: #333; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #555; }
+    .btn.red { background: #e53935; }
+    .btn i { color: white; font-size: 22px; }
+    #caption { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 16px; max-width: 80%; text-align: center; display: none; z-index: 15; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="videos">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <video id="localVideo" autoplay muted playsinline></video>
+      <div id="caption"></div>
+    </div>
+    <div id="controls">
+      <button class="btn" id="micBtn"><i class="fa-solid fa-microphone"></i></button>
+      <button class="btn" id="camBtn"><i class="fa-solid fa-video"></i></button>
+      <button class="btn" id="captionBtn"><i class="fa-solid fa-closed-captioning"></i></button>
+      <button class="btn red" id="endBtn"><i class="fa-solid fa-phone-slash"></i></button>
+    </div>
+  </div>
+
+  <script>
+    let hms;
+    let localTracks = {};
+    let remoteTracks = {};
+    let isMicMuted = false;
+    let isCamOff = false;
+    let captionsVisible = false;
+
+    async function getParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        roomId: params.get('roomId') || 'TESTROOM',
+        userName: params.get('userName') || 'Guest'
+      };
+    }
+
+    async function initHMS() {
+      const { roomId, userName } = await getParams();
+      hms = new HMS.HMSSDK();
+      await hms.build();
+
+      const authToken = await hms.getAuthTokenByRoomCode({ roomCode: roomId });
+      if (typeof authToken !== 'string') {
+        alert('Failed to get auth token');
+        return;
+      }
+
+      const config = { authToken, userName };
+      await hms.join({ config });
+
+      // Local track
+      localTracks = hms.getLocalTracks();
+      if(localTracks.videoTrack) document.getElementById('localVideo').srcObject = localTracks.videoTrack.mediaStream;
+
+      hms.addUpdateListener({
+        onTrackUpdate: ({ track, trackUpdate, peer }) => {
+          if(track.kind === 'video' && !peer.isLocal) {
+            if(trackUpdate === 'ADDED') {
+              remoteTracks[peer.peerId] = track;
+              document.getElementById('remoteVideo').srcObject = track.mediaStream;
+            } else if(trackUpdate === 'REMOVED') {
+              if(remoteTracks[peer.peerId]) delete remoteTracks[peer.peerId];
+              document.getElementById('remoteVideo').srcObject = null;
+            }
+          }
+        }
+      });
+
+      hms.addTranscriptionListener({
+        onTranscripts: ({ transcriptions }) => {
+          if(transcriptions.length === 0) return;
+          const last = transcriptions[transcriptions.length - 1];
+          const peer = hms.getPeers().find(p => p.peerId === last.peerId);
+          const name = peer ? peer.name : 'Unknown';
+          const text = `${name}: ${last.transcript}`;
+          const captionDiv = document.getElementById('caption');
+          captionDiv.innerText = text;
+          if(captionsVisible) {
+            captionDiv.style.display = 'block';
+            setTimeout(() => captionDiv.style.display = 'none', 5000);
+          }
+        }
+      });
+    }
+
+    // Controls
+    document.getElementById('micBtn').addEventListener('click', () => {
+      if(!localTracks.audioTrack) return;
+      isMicMuted = !isMicMuted;
+      localTracks.audioTrack.setMute(isMicMuted);
+      document.querySelector('#micBtn i').className = isMicMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
+    });
+
+    document.getElementById('camBtn').addEventListener('click', () => {
+      if(!localTracks.videoTrack) return;
+      isCamOff = !isCamOff;
+      localTracks.videoTrack.setMute(isCamOff);
+      document.querySelector('#camBtn i').className = isCamOff ? 'fa-solid fa-video-slash' : 'fa-solid fa-video';
+    });
+
+    document.getElementById('captionBtn').addEventListener('click', () => {
+      captionsVisible = !captionsVisible;
+    });
+
+    document.getElementById('endBtn').addEventListener('click', () => {
+      hms.leave();
+      window.location.href = 'about:blank';
+    });
+
+    window.onload = initHMS;
+  </script>
+</body>
+</html>
