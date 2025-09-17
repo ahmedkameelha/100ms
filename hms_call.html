@@ -3,127 +3,335 @@
 <head>
   <meta charset="UTF-8">
   <title>HMS Web Video Call</title>
+  <!-- Using your self-built and hosted script -->
   <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@cf8c9aa17a5dd7ce6e6e2f086e7ce47ffff7b4e9/hms-bundle.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body, html { width: 100%; height: 100%; background: #1a1a1a; }
-    #container { display: flex; flex-direction: column; width: 100%; height: 100%; }
-    #videos { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
-    video { border-radius: 8px; max-width: 100%; max-height: 100%; background: black; }
-    #localVideo { position: absolute; bottom: 20px; right: 20px; width: 240px; height: 135px; border: 2px solid #fff; }
-    #controls { height: 70px; background: rgba(30, 30, 30, 0.9); display: flex; justify-content: center; align-items: center; gap: 16px; }
-    .btn { background: #333; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background 0.2s; }
-    .btn:hover { background: #555; }
-    .btn.red { background: #e53935; }
-    .btn i { color: white; font-size: 22px; }
-    #caption { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 16px; max-width: 80%; text-align: center; display: none; }
-  </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <style>
+    /* --- General & Reset --- */
+    :root {
+      --dark-grey: #202124;
+      --light-grey: #3c4043;
+      --hover-grey: #4a4b4f;
+      --red-accent: #ea4335;
+      --text-color: #e8eaed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Google Sans', Roboto, Arial, sans-serif; }
+    body, html { width: 100%; height: 100%; background: var(--dark-grey); color: var(--text-color); overflow: hidden; }
+
+    /* --- Main Container & Video Tiles --- */
+    #container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .video-tile {
+      position: absolute;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .video-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* --- Remote Peer (Full Screen) --- */
+    #remote-tile {
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    /* --- Local Peer (Top-Right Corner) --- */
+    #local-tile {
+      top: 16px;
+      right: 16px;
+      width: 240px;
+      height: 135px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    
+    /* --- Avatar Placeholder --- */
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #282a2d;
+    }
+    .avatar-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: var(--light-grey);
+      color: var(--text-color);
+      font-size: 28px;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #local-tile .avatar-circle {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+    }
+
+    /* --- Overlays (Name Tag & Mute Icon) --- */
+    .video-overlay {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .name-tag {
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .mute-icon {
+        background-color: rgba(0, 0, 0, 0.6);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .mute-icon i {
+        font-size: 14px;
+        color: #fff;
+    }
+
+    /* --- Control Bar --- */
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 16px;
+      background: var(--light-grey);
+      border-radius: 28px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+    #container:hover #controls {
+      opacity: 1;
+      visibility: visible;
+    }
+    .btn {
+      background: var(--light-grey);
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn:hover { background: var(--hover-grey); }
+    .btn.active { background: var(--text-color); }
+    .btn.active i { color: var(--dark-grey); }
+    .btn i { color: var(--text-color); font-size: 20px; }
+    
+    #endBtn {
+        background: var(--red-accent);
+        border-radius: 24px;
+        width: auto;
+        padding: 0 24px;
+    }
+    #endBtn:hover { background: #d93025; }
+
+    /* --- Loading/Error State --- */
+    #status {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px;
+        background: var(--light-grey);
+        border-radius: 12px;
+        font-size: 18px;
+    }
+
+  </style>
 </head>
 <body>
   <div id="container">
-    <div id="videos">
-      <video id="remoteVideo" autoplay playsinline></video>
-      <video id="localVideo" autoplay muted playsinline></video>
-      <div id="caption"></div>
+    <div id="status">Connecting...</div>
+
+    <!-- Video Tiles -->
+    <div id="remote-tile" class="video-tile">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="avatar-placeholder">
+            <div class="avatar-circle" id="remoteAvatar"></div>
+        </div>
+        <div class="video-overlay">
+            <div class="name-tag" id="remoteNameTag"></div>
+            <div class="mute-icon" id="remoteMuteIcon" style="display: none;"><i class="fa-solid fa-microphone-slash"></i></div>
+        </div>
     </div>
+    
+    <div id="local-tile" class="video-tile">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="avatar-placeholder">
+            <div class="avatar-circle" id="localAvatar"></div>
+        </div>
+        <div class="video-overlay">
+            <div class="name-tag">You</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
     <div id="controls">
-      <button class="btn" id="micBtn"><i class="fa-solid fa-microphone"></i></button>
-      <button class="btn" id="camBtn"><i class="fa-solid fa-video"></i></button>
-      <button class="btn" id="captionBtn"><i class="fa-solid fa-closed-captioning"></i></button>
-      <button class="btn red" id="endBtn"><i class="fa-solid fa-phone-slash"></i></button>
+      <button class="btn active" id="micBtn"><i class="fa-solid fa-microphone"></i></button>
+      <button class="btn active" id="camBtn"><i class="fa-solid fa-video"></i></button>
+      <button class="btn" id="endBtn"><i class="fa-solid fa-phone"></i></button>
     </div>
   </div>
 
   <script>
-    let hms;
-    let localTracks = {};
-    let remoteTracks = {};
-    let isMicMuted = false;
-    let isCamOff = false;
-    let captionsVisible = false;
+    // --- State and Elements ---
+    let hmsManager, hmsStore, hmsActions;
+    const { selectPeers, selectIsLocalAudioEnabled, selectIsLocalVideoEnabled, selectIsConnectedToRoom } = window.HMSReactiveStore;
 
-    async function getParams() {
+    const localVideoEl = document.getElementById('localVideo');
+    const remoteVideoEl = document.getElementById('remoteVideo');
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
+    const endBtn = document.getElementById('endBtn');
+    const statusEl = document.getElementById('status');
+    
+    // --- Get URL Parameters ---
+    function getParams() {
       const params = new URLSearchParams(window.location.search);
-      return {
-        roomId: params.get('roomId') || 'TESTROOM',
-        userName: params.get('userName') || 'Guest'
-      };
+      const userName = params.get('userName') || 'Guest';
+      const roomId = params.get('roomId');
+      document.getElementById('localAvatar').innerText = userName.charAt(0).toUpperCase();
+      return { roomId, userName };
     }
 
+    // --- Core HMS Functions ---
     async function initHMS() {
-      const { roomId, userName } = await getParams();
+      const { roomId, userName } = getParams();
 
-      // Use global object attached to window
-      hms = new window.HMSReactiveStore.HMSSDK();
-      await hms.build();
-
-      const authToken = await hms.getAuthTokenByRoomCode({ roomCode: roomId });
-
-      if (typeof authToken !== 'string') {
-        alert('Failed to get auth token');
+      if (!roomId) {
+        statusEl.innerText = 'Error: Room ID is missing!';
         return;
       }
 
-      const config = { authToken, userName };
-      await hms.join({ config });
+      hmsManager = new window.HMSReactiveStore();
+      hmsManager.triggerOnSubscribe();
+      hmsStore = hmsManager.getStore();
+      hmsActions = hmsManager.getHMSActions();
 
-      localTracks = hms.getLocalTracks();
-      if(localTracks.videoTrack) document.getElementById('localVideo').srcObject = localTracks.videoTrack.mediaStream;
-
-      hms.addUpdateListener({
-        onTrackUpdate: ({ track, trackUpdate, peer }) => {
-          if(track.kind === 'video' && !peer.isLocal) {
-            if(trackUpdate === 'ADDED') {
-              remoteTracks[peer.peerId] = track;
-              document.getElementById('remoteVideo').srcObject = track.mediaStream;
-            } else if(trackUpdate === 'REMOVED') {
-              if(remoteTracks[peer.peerId]) delete remoteTracks[peer.peerId];
-              document.getElementById('remoteVideo').srcObject = null;
-            }
-          }
+      try {
+        const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
+        await hmsActions.join({ userName, authToken });
+      } catch (error) {
+        console.error("Error joining room:", error);
+        statusEl.innerText = `Error: ${error.message}`;
+      }
+      
+      hmsStore.subscribe(onConnectionUpdate, selectIsConnectedToRoom);
+      hmsStore.subscribe(renderPeers, selectPeers);
+      hmsStore.subscribe(updateMicButton, selectIsLocalAudioEnabled);
+      hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
+    }
+    
+    function onConnectionUpdate(isConnected) {
+        if(isConnected) {
+            console.log("Successfully connected to the room!");
+            statusEl.style.display = 'none'; // Hide status message on connect
         }
-      });
-
-      hms.addTranscriptionListener({
-        onTranscripts: ({ transcriptions }) => {
-          if(transcriptions.length === 0) return;
-          const last = transcriptions[transcriptions.length - 1];
-          const peer = hms.getPeers().find(p => p.peerId === last.peerId);
-          const name = peer ? peer.name : 'Unknown';
-          const text = `${name}: ${last.transcript}`;
-          const captionDiv = document.getElementById('caption');
-          captionDiv.innerText = text;
-          if(captionsVisible) {
-            captionDiv.style.display = 'block';
-            setTimeout(() => captionDiv.style.display = 'none', 5000);
-          }
-        }
-      });
     }
 
-    // Controls
-    document.getElementById('micBtn').addEventListener('click', () => {
-      if(!localTracks.audioTrack) return;
-      isMicMuted = !isMicMuted;
-      localTracks.audioTrack.setMute(isMicMuted);
-      document.querySelector('#micBtn i').className = isMicMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
+    function renderPeers(peers) {
+        const localPeer = peers.find(p => p.isLocal);
+        const remotePeer = peers.find(p => !p.isLocal);
+        
+        updateTile('local', localPeer);
+        updateTile('remote', remotePeer);
+    }
+    
+    function updateTile(tileType, peer) {
+        const videoEl = document.getElementById(`${tileType}Video`);
+        const avatarPlaceholder = document.querySelector(`#${tileType}-tile .avatar-placeholder`);
+        
+        if (peer && peer.videoTrack) {
+            videoEl.style.display = 'block';
+            avatarPlaceholder.style.display = 'none';
+            if(videoEl.srcObject !== peer.videoTrack.stream) {
+                videoEl.srcObject = peer.videoTrack.stream;
+            }
+        } else {
+            videoEl.style.display = 'none';
+            avatarPlaceholder.style.display = 'flex';
+        }
+        
+        // Update remote peer info
+        if(tileType === 'remote') {
+            const nameTag = document.getElementById('remoteNameTag');
+            const muteIcon = document.getElementById('remoteMuteIcon');
+            const remoteAvatar = document.getElementById('remoteAvatar');
+
+            if(peer) {
+                nameTag.innerText = peer.name;
+                remoteAvatar.innerText = peer.name.charAt(0).toUpperCase();
+                muteIcon.style.display = peer.isAudioEnabled ? 'none' : 'flex';
+            } else {
+                nameTag.innerText = 'Waiting for peer...';
+                remoteAvatar.innerText = '?';
+                muteIcon.style.display = 'none';
+            }
+        }
+    }
+
+    function updateMicButton(isAudioEnabled) {
+        micBtn.classList.toggle('active', isAudioEnabled);
+        micBtn.querySelector('i').className = isAudioEnabled ? 'fa-solid fa-microphone' : 'fa-solid fa-microphone-slash';
+    }
+
+    function updateCamButton(isVideoEnabled) {
+        camBtn.classList.toggle('active', isVideoEnabled);
+        camBtn.querySelector('i').className = isVideoEnabled ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
+    }
+
+    // --- Controls ---
+    micBtn.addEventListener('click', () => {
+      const isEnabled = hmsStore.getState(selectIsLocalAudioEnabled);
+      hmsActions.setLocalAudioEnabled(!isEnabled);
     });
 
-    document.getElementById('camBtn').addEventListener('click', () => {
-      if(!localTracks.videoTrack) return;
-      isCamOff = !isCamOff;
-      localTracks.videoTrack.setMute(isCamOff);
-      document.querySelector('#camBtn i').className = isCamOff ? 'fa-solid fa-video-slash' : 'fa-solid fa-video';
+    camBtn.addEventListener('click', () => {
+      const isEnabled = hmsStore.getState(selectIsLocalVideoEnabled);
+      hmsActions.setLocalVideoEnabled(!isEnabled);
     });
 
-    document.getElementById('captionBtn').addEventListener('click', () => {
-      captionsVisible = !captionsVisible;
-    });
-
-    document.getElementById('endBtn').addEventListener('click', () => {
-      hms.leave();
-      window.location.href = 'about:blank';
+    endBtn.addEventListener('click', () => {
+      hmsActions.leave();
+      statusEl.innerText = 'You have left the room.';
+      statusEl.style.display = 'block';
+      document.getElementById('controls').style.display = 'none';
     });
 
     window.onload = initHMS;
