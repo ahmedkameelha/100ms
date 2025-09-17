@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video V2V</title>
+  <title>Video</title>
 
   <!-- This script MUST come BEFORE your hms-bundle.js -->
   <script>
@@ -29,7 +29,6 @@
       --secondary-text: #bdc1c6;
       --red-accent: #ea4335;
       --red-hover: #d93025;
-      --blue-accent: #8ab4f8;
       --font-family: 'Roboto', sans-serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,11 +41,34 @@
       overflow: hidden;
     }
 
-    /* --- Main Layout --- */
-    #app-container {
+    /* --- Pre-Join Screen --- */
+    #prejoin-container {
       width: 100%;
       height: 100%;
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+    #join-btn {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      background-color: #8ab4f8;
+      color: #202124;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    #join-btn:hover { background-color: #a2c3f9; }
+
+    /* --- Main App Layout --- */
+    #app-container {
+      width: 100%;
+      height: 100%;
+      display: none; /* Hidden until user joins */
       flex-direction: column;
     }
     
@@ -58,32 +80,32 @@
       color: var(--secondary-text);
       font-size: 14px;
     }
-    #top-bar i { font-size: 16px; margin-left: 4px; }
+    #top-bar-right i { margin-right: 8px; }
 
     #video-grid {
       flex-grow: 1;
       width: 100%;
       display: flex;
       gap: 16px;
-      padding: 16px;
+      padding: 0 16px 16px 16px;
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
     }
 
-    /* --- Video Tiles --- */
+    /* --- Video Tiles (Screenshot Accurate) --- */
     .video-tile {
       position: relative;
       background-color: var(--tile-bg);
-      border-radius: 12px;
+      border-radius: 8px;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      width: 45%;
-      max-width: 640px;
-      min-width: 300px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+      flex-grow: 1;
+      max-width: 48%;
+      min-width: 320px;
       aspect-ratio: 16 / 9;
       transition: all 0.3s ease;
     }
@@ -91,45 +113,48 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      position: absolute;
+      top: 0; left: 0;
     }
     .video-tile.local video {
-        transform: scaleX(-1); /* Mirror local video */
+      transform: scaleX(-1); /* Mirror local video */
     }
 
-    /* --- Avatar Placeholder --- */
+    /* --- Avatar Placeholder (Screenshot Accurate) --- */
     .avatar-placeholder {
-      width: 90px;
-      height: 90px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       background-color: var(--surface-color);
-      font-size: 40px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-weight: 500;
     }
+    .avatar-placeholder i { font-size: 32px; color: var(--secondary-text); }
     
     /* --- Overlays on Tile --- */
-    .tile-overlay {
+    .tile-controls {
       position: absolute;
-      bottom: 8px;
-      left: 12px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 12px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 500;
     }
-    .mute-icon {
-      width: 28px;
-      height: 28px;
-      background-color: rgba(0,0,0,0.6);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .peer-name { font-size: 14px; font-weight: 500; }
+    .mute-indicator {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: var(--red-accent);
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
-    .mute-icon i { font-size: 14px; color: var(--red-accent); }
+    .mute-indicator i { font-size: 14px; }
+
 
     /* --- Bottom Control Bar --- */
     #controls-bar {
@@ -141,14 +166,14 @@
     #controls-center {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
     }
     .control-btn {
       background: var(--surface-color);
       border: none;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+      width: 56px;
+      height: 40px;
+      border-radius: 20px;
       cursor: pointer;
       display: flex;
       justify-content: center;
@@ -163,26 +188,22 @@
     .control-btn.toggled-off { background-color: var(--red-accent) !important; }
     .control-btn.toggled-off:hover { background-color: var(--red-hover) !important; }
     
-    /* --- Status Overlay --- */
-    #status-container {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: var(--bg-dark);
-      z-index: 100;
-      transition: opacity 0.5s;
-    }
-    #status { font-size: 20px; color: var(--secondary-text); }
   </style>
 </head>
 <body>
 
+  <div id="prejoin-container">
+    <h1>Ready to join?</h1>
+    <button id="join-btn">Join Call</button>
+  </div>
+
   <div id="app-container">
     <div id="top-bar">
       <div id="user-info">UserName &nbsp; | &nbsp; 00:00</div>
-      <div><i class="fa-solid fa-users"></i> <span id="participant-count">1</span></div>
+      <div id="top-bar-right">
+        <i class="fa-solid fa-users"></i>
+        <span id="participant-count">0</span>
+      </div>
     </div>
     
     <div id="video-grid">
@@ -192,16 +213,9 @@
     <div id="controls-bar">
       <div id="controls-center">
         <button class="control-btn" id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
-        <button class="control-btn" id="cam-btn"><i class="fa-solid fa-video"></i></button>
         <button class="control-btn" id="end-call-btn"><i class="fa-solid fa-phone"></i></button>
-        <button class="control-btn"><i class="fa-solid fa-closed-captioning"></i></button>
-        <button class="control-btn"><i class="fa-solid fa-hand"></i></button>
-        <button class="control-btn"><i class="fa-solid fa-display"></i></button>
+        <button class="control-btn" id="cam-btn"><i class="fa-solid fa-video"></i></button>
       </div>
-    </div>
-
-    <div id="status-container">
-        <div id="status">Connecting...</div>
     </div>
   </div>
 
@@ -210,14 +224,20 @@
     const { 
       selectPeers, 
       selectIsLocalAudioEnabled, 
-      selectIsLocalVideoEnabled, 
-      selectIsConnectedToRoom
+      selectIsLocalVideoEnabled
     } = window.HMSReactiveStore;
 
-    const statusContainer = document.getElementById('status-container');
-    const statusEl = document.getElementById('status');
+    const prejoinContainer = document.getElementById('prejoin-container');
+    const appContainer = document.getElementById('app-container');
+    const joinBtn = document.getElementById('join-btn');
     const videoGrid = document.getElementById('video-grid');
     const participantCountEl = document.getElementById('participant-count');
+
+    joinBtn.addEventListener('click', () => {
+      prejoinContainer.style.display = 'none';
+      appContainer.style.display = 'flex';
+      initHMS();
+    });
 
     async function initHMS() {
       try {
@@ -235,29 +255,20 @@
         const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
         await hmsActions.join({ userName, authToken });
         
-        hmsStore.subscribe(onConnectionUpdate, selectIsConnectedToRoom);
         hmsStore.subscribe(renderPeers, selectPeers);
         hmsStore.subscribe(updateMicButton, selectIsLocalAudioEnabled);
         hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
       } catch (error) {
         console.error("HMS Init Error:", error);
-        statusEl.innerText = `Error: ${error.message}`;
+        alert(`Error: ${error.message}`);
       }
     }
     
-    function onConnectionUpdate(isConnected) {
-        if(isConnected) {
-            statusContainer.style.opacity = '0';
-            statusContainer.style.pointerEvents = 'none';
-        } else {
-            videoGrid.innerHTML = '';
-            statusContainer.style.opacity = '1';
-            statusContainer.style.pointerEvents = 'auto';
-        }
-    }
-
     function renderPeers(peers) {
-        videoGrid.innerHTML = ''; // Clear the grid completely on every update
+        // --- THIS IS THE CRITICAL FIX for "TypeError: peers.forEach is not a function" ---
+        if (!Array.isArray(peers)) return;
+
+        videoGrid.innerHTML = '';
         participantCountEl.innerText = peers.length;
 
         peers.forEach(peer => {
@@ -267,47 +278,38 @@
 
             const videoEl = document.createElement('video');
             videoEl.autoplay = true;
-            videoEl.muted = true; // Always mute to allow autoplay
+            videoEl.muted = true;
             videoEl.playsinline = true;
 
             const avatarEl = document.createElement('div');
             avatarEl.className = 'avatar-placeholder';
-            avatarEl.innerText = peer.name.charAt(0).toUpperCase();
+            avatarEl.innerHTML = `<i class="fa-solid fa-camera"></i>`;
+            
+            tile.appendChild(avatarEl); // Add avatar first, as a background
+            tile.appendChild(videoEl); // Video will overlay it
 
-            tile.appendChild(videoEl);
-            tile.appendChild(avatarEl);
-
-            // --- THIS IS THE CORE FIX ---
-            // If there is a video track, attach it. Otherwise, show the avatar.
             if (peer.videoTrack) {
-                hmsActions.attachVideo(peer.videoTrack, videoEl).then(() => {
-                    console.log(`Successfully attached video for ${peer.name}`);
-                    avatarEl.style.display = 'none';
-                    videoEl.style.display = 'block';
-                }).catch(e => {
-                    console.error(`Error attaching video for ${peer.name}:`, e);
-                });
-            } else {
-                avatarEl.style.display = 'flex';
-                videoEl.style.display = 'none';
+                hmsActions.attachVideo(peer.videoTrack, videoEl);
             }
 
-            // Add overlay for name and mute status
-            const overlay = document.createElement('div');
-            overlay.className = 'tile-overlay';
-            
+            const controls = document.createElement('div');
+            controls.className = 'tile-controls';
+
             const name = document.createElement('span');
+            name.className = 'peer-name';
             name.innerText = peer.isLocal ? 'You' : peer.name;
-            overlay.appendChild(name);
+            controls.appendChild(name);
 
-            if (!peer.isLocal && !peer.audioTrack) { // Or check if audio is disabled
-                const muteIcon = document.createElement('div');
-                muteIcon.className = 'mute-icon';
-                muteIcon.innerHTML = `<i class="fa-solid fa-microphone-slash"></i>`;
-                overlay.appendChild(muteIcon);
+            // Show mute icon if audio is disabled
+            const isAudioEnabled = peer.audioTrack ? hmsStore.getState(s => s.tracks[peer.audioTrack]?.enabled) : false;
+            if (!isAudioEnabled) {
+                const muteIndicator = document.createElement('div');
+                muteIndicator.className = 'mute-indicator';
+                muteIndicator.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+                controls.appendChild(muteIndicator);
             }
-            tile.appendChild(overlay);
             
+            tile.appendChild(controls);
             videoGrid.appendChild(tile);
         });
     }
@@ -333,10 +335,10 @@
     });
     document.getElementById('end-call-btn').addEventListener('click', async () => {
       await hmsActions.leave();
-      statusEl.innerText = 'You have left the room.';
+      // Reload or redirect to a 'left call' page
+      window.location.reload();
     });
 
-    window.onload = initHMS;
     window.onbeforeunload = () => { if (hmsActions) hmsActions.leave(); };
   </script>
 </body>
