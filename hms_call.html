@@ -3,21 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <title>HMS Web Video Call</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    html, body { width: 100%; height: 100%; background: #1a1a1a; }
-    #container { display: flex; flex-direction: column; width: 100%; height: 100%; }
-    #videos { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
-    video { border-radius: 8px; max-width: 100%; max-height: 100%; background: black; }
-    #localVideo { position: absolute; bottom: 20px; right: 20px; width: 240px; height: 135px; border: 2px solid #fff; }
-    #controls { height: 70px; background: rgba(30, 30, 30, 0.9); display: flex; justify-content: center; align-items: center; gap: 16px; }
-    .btn { background: #333; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background 0.2s; }
-    .btn:hover { background: #555; }
-    .btn.red { background: #e53935; }
-    .btn i { color: white; font-size: 22px; }
-    #caption { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 16px; max-width: 80%; text-align: center; display: none; }
-  </style>
+  <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@cf8c9aa17a5dd7ce6e6e2f086e7ce47ffff7b4e9/hms-bundle.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body, html { width: 100%; height: 100%; background: #202124; color: #fff; }
+
+    #container { display: flex; flex-direction: column; width: 100%; height: 100%; position: relative; }
+
+    #videos { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); grid-auto-rows: 200px; gap: 12px; padding: 12px; overflow: auto; }
+
+    video { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; background: black; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+
+    #localVideo { position: absolute; width: 180px; height: 120px; bottom: 90px; right: 24px; border: 2px solid #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
+    #controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; background: rgba(32,33,36,0.8); padding: 12px 20px; border-radius: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+
+    .btn { width: 60px; height: 60px; border-radius: 50%; border: none; background: #5f6368; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: #8ab4f8; }
+    .btn.red { background: #ea4335; }
+    .btn.red:hover { background: #f28b82; }
+
+    .btn i { font-size: 28px; color: #fff; }
+
+    #caption { position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; font-size: 16px; max-width: 80%; text-align: center; display: none; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+  </style>
 </head>
 <body>
   <div id="container">
@@ -26,6 +36,7 @@
       <video id="localVideo" autoplay muted playsinline></video>
       <div id="caption"></div>
     </div>
+
     <div id="controls">
       <button class="btn" id="micBtn"><i class="fa-solid fa-microphone"></i></button>
       <button class="btn" id="camBtn"><i class="fa-solid fa-video"></i></button>
@@ -34,10 +45,7 @@
     </div>
   </div>
 
-  <!-- Use the new module version -->
-  <script type="module">
-    import { HMSSDK } from 'https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@cf8c9aa17a5dd7ce6e6e2f086e7ce47ffff7b4e9/hms-bundle.js';
-
+  <script>
     let hms;
     let localTracks = {};
     let remoteTracks = {};
@@ -55,22 +63,20 @@
 
     async function initHMS() {
       const { roomId, userName } = await getParams();
-      hms = new HMSSDK();
+      hms = new HMS.HMSSDK();
       await hms.build();
 
       const authToken = await hms.getAuthTokenByRoomCode({ roomCode: roomId });
-      if (typeof authToken !== 'string') {
-        alert('Failed to get auth token');
-        return;
-      }
+      if (typeof authToken !== 'string') { alert('Failed to get auth token'); return; }
 
-      const config = { authToken, userName };
-      await hms.join({ config });
+      await hms.join({ config: { authToken, userName } });
 
-      // Local track
+      // Local tracks
       localTracks = hms.getLocalTracks();
-      if(localTracks.videoTrack) document.getElementById('localVideo').srcObject = localTracks.videoTrack.mediaStream;
+      if (localTracks.videoTrack)
+        document.getElementById('localVideo').srcObject = localTracks.videoTrack.mediaStream;
 
+      // Remote video
       hms.addUpdateListener({
         onTrackUpdate: ({ track, trackUpdate, peer }) => {
           if(track.kind === 'video' && !peer.isLocal) {
@@ -85,6 +91,7 @@
         }
       });
 
+      // Captions
       hms.addTranscriptionListener({
         onTranscripts: ({ transcriptions }) => {
           if(transcriptions.length === 0) return;
