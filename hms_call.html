@@ -5,28 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Call</title>
   
-  <!--
-    ==================================================================
-    FIX: Define the missing 'process' variable before loading the bundle.
-    This script MUST come BEFORE your hms-bundle.js script.
-    ==================================================================
-  -->
   <script>
+    // FIX: Define the missing 'process' variable before loading the bundle.
     window.process = { env: { NODE_ENV: 'production' } };
   </script>
-  <!-- ================================================================== -->
 
-  <!-- Now, load your existing script from your specific commit hash -->
+  <!-- Load your existing script from your specific commit hash -->
   <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@f09a25e53fb1f373631533a97e763cf1bde205e4/hms-bundle.js"></script>
   
-  <!-- Fonts and Icons for the Google Meet look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   
   <style>
-    /* --- Base Styles & Google Meet Theme --- */
     :root {
       --bg-color: #202124;
       --surface-color: #3c4043;
@@ -46,8 +38,6 @@
       font-family: var(--font-family);
       overflow: hidden;
     }
-
-    /* --- Main Layout --- */
     #container {
       width: 100%;
       height: 100%;
@@ -56,8 +46,6 @@
       justify-content: center;
       align-items: center;
     }
-
-    /* --- Video Tiles --- */
     .video-tile {
       position: absolute;
       background-color: #282a2d;
@@ -69,16 +57,17 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scale(1.01); /* Prevents black bars on edges */
+      transform: scaleX(-1); /* Mirror local video */
     }
-
+    #remote-tile video {
+        transform: scaleX(1); /* Do not mirror remote video */
+    }
     #remote-tile {
       width: 100%;
       height: 100%;
       top: 0;
       left: 0;
     }
-    
     #local-tile {
       width: 240px;
       height: 135px;
@@ -87,8 +76,6 @@
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
-
-    /* --- Animated Speaking Indicator --- */
     @keyframes pulse {
         0% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(138, 180, 248, 0); }
@@ -103,12 +90,11 @@
         animation: pulse 1.5s infinite;
         opacity: 0;
         transition: opacity 0.3s;
+        pointer-events: none;
     }
     .video-tile.speaking .speaking-indicator {
         opacity: 1;
     }
-
-    /* --- Avatar Placeholders --- */
     .avatar-placeholder {
       width: 100%;
       height: 100%;
@@ -138,8 +124,6 @@
         color: var(--secondary-text);
         font-size: 16px;
     }
-
-    /* --- Overlays --- */
     .video-overlay {
       position: absolute;
       bottom: 8px;
@@ -152,10 +136,9 @@
       border-radius: 20px;
       font-size: 14px;
       font-weight: 500;
+      pointer-events: none;
     }
     .mute-icon { font-size: 14px; color: var(--primary-text); }
-
-    /* --- Control Bar --- */
     #controls {
       position: absolute;
       bottom: 24px;
@@ -172,8 +155,6 @@
       opacity: 1;
       visibility: visible;
     }
-
-    /* --- Control Buttons & Tooltips --- */
     .btn-wrapper { position: relative; }
     .btn {
       background: var(--surface-color);
@@ -190,7 +171,6 @@
     .btn.toggled-off:hover { background-color: #d93025 !important; }
     #endBtn { background-color: var(--red-accent); }
     #endBtn:hover { background-color: #d93025; }
-
     .tooltip {
         position: absolute;
         bottom: 110%;
@@ -210,8 +190,6 @@
         opacity: 1;
         visibility: visible;
     }
-    
-    /* --- Status Text --- */
     #status {
       font-size: 20px;
       color: var(--secondary-text);
@@ -317,11 +295,7 @@
     }
 
     function renderPeers(peers) {
-        // Safety check for the previous error
-        if (!Array.isArray(peers)) {
-          console.warn("renderPeers was called but 'peers' is not an array:", peers);
-          return;
-        }
+        if (!Array.isArray(peers)) return;
 
         const localPeer = peers.find(p => p.isLocal);
         const remotePeer = peers.find(p => !p.isLocal);
@@ -330,14 +304,20 @@
         updateTile('remote', remotePeer);
     }
     
+    // --- THIS FUNCTION IS NOW FIXED ---
     function updateTile(tileType, peer) {
         const videoEl = document.getElementById(`${tileType}Video`);
         const avatarPlaceholder = document.querySelector(`#${tileType}-tile .avatar-placeholder`);
         
-        if (peer && peer.videoTrack && peer.isVideoEnabled) {
+        // **FIX**: The most reliable way to check for a usable video track.
+        // We check if the track exists and if its 'enabled' property is true.
+        const isVideoAvailable = peer && peer.videoTrack && peer.videoTrack.enabled;
+        
+        if (isVideoAvailable) {
             videoEl.style.display = 'block';
             avatarPlaceholder.style.display = 'none';
-            if(videoEl.srcObject !== peer.videoTrack.stream) {
+            // Only assign the srcObject if it's different to prevent glitches
+            if (videoEl.srcObject !== peer.videoTrack.stream) {
                 videoEl.srcObject = peer.videoTrack.stream;
             }
         } else {
@@ -354,7 +334,8 @@
             if(peer) {
                 nameTag.innerText = peer.name;
                 remoteAvatar.innerText = peer.name.charAt(0).toUpperCase();
-                muteIcon.style.display = peer.isAudioEnabled ? 'none' : 'block';
+                // **FIX**: Check audioTrack.enabled for mute status
+                muteIcon.style.display = (peer.audioTrack && peer.audioTrack.enabled) ? 'none' : 'block';
                 remoteWaitingText.style.display = 'none';
             } else {
                 nameTag.innerText = '';
@@ -373,7 +354,6 @@
         };
         const allPeers = hmsStore.getState(selectPeers);
 
-        // Reset all first
         Object.values(peerElements).forEach(el => el.classList.remove('speaking'));
         if(!Array.isArray(speakers) || !Array.isArray(allPeers)) return;
 
@@ -420,10 +400,8 @@
         hmsActions.leave();
         statusEl.innerText = 'You have left the room.';
         statusEl.style.display = 'block';
-        document.getElementById('container').innerHTML = ''; // Clear the UI
-      } catch (error) {
-        console.error("Error on leave:", error);
-      }
+        document.getElementById('container').innerHTML = '';
+      } catch (error) { console.error("Error on leave:", error); }
     });
 
     // Show/hide controls on mouse move
