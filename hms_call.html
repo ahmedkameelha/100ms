@@ -1,345 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video</title>
-
-  <!-- This script MUST come BEFORE your hms-bundle.js -->
-  <script>
-    window.process = { env: { NODE_ENV: 'production' } };
-  </script>
-
-  <!-- IMPORTANT: PASTE YOUR SCRIPT URL HERE -->
-  <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@f09a25e53fb1f373631533a97e763cf1bde205e4/hms-bundle.js"></script>
-  
-  <!-- Fonts and Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>100ms Video Grid</title>
   <style>
-    :root {
-      --bg-dark: #202124;
-      --tile-bg: #303134;
-      --surface-color: #3c4043;
-      --hover-color: #4a4b4f;
-      --primary-text: #e8eaed;
-      --secondary-text: #bdc1c6;
-      --red-accent: #ea4335;
-      --red-hover: #d93025;
-      --font-family: 'Roboto', sans-serif;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      background-color: var(--bg-dark);
-      color: var(--primary-text);
-      font-family: var(--font-family);
-      overflow: hidden;
-    }
-
-    /* --- Pre-Join Screen --- */
-    #prejoin-container {
-      width: 100%;
-      height: 100%;
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-    }
-    #join-btn {
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 500;
-      background-color: #8ab4f8;
-      color: #202124;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    #join-btn:hover { background-color: #a2c3f9; }
-
-    /* --- Main App Layout --- */
-    #app-container {
-      width: 100%;
-      height: 100%;
-      display: none; /* Hidden until user joins */
-      flex-direction: column;
-    }
-    
-    #top-bar {
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--secondary-text);
-      font-size: 14px;
-    }
-    #top-bar-right i { margin-right: 8px; }
-
-    #video-grid {
-      flex-grow: 1;
-      width: 100%;
-      display: flex;
-      gap: 16px;
-      padding: 0 16px 16px 16px;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
+      height: 100vh;
     }
 
-    /* --- Video Tiles (Screenshot Accurate) --- */
+    #peers-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      padding: 12px;
+      flex: 1;
+      box-sizing: border-box;
+    }
+
     .video-tile {
       position: relative;
-      background-color: var(--tile-bg);
+      background-color: #282a2d;
       border-radius: 8px;
       overflow: hidden;
       display: flex;
-      justify-content: center;
       align-items: center;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-      flex-grow: 1;
-      max-width: 48%;
-      min-width: 320px;
-      aspect-ratio: 16 / 9;
-      transition: all 0.3s ease;
+      justify-content: center;
     }
+
     .video-tile video {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      position: absolute;
-      top: 0; left: 0;
-    }
-    .video-tile.local video {
-      transform: scaleX(-1); /* Mirror local video */
+      background: black;
     }
 
-    /* --- Avatar Placeholder (Screenshot Accurate) --- */
-    .avatar-placeholder {
-      width: 80px;
-      height: 80px;
+    .video-overlay {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .avatar-circle {
+      position: absolute;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      background-color: var(--surface-color);
+      background: #555;
+      color: white;
       display: flex;
+      align-items: center;
       justify-content: center;
-      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
     }
-    .avatar-placeholder i { font-size: 32px; color: var(--secondary-text); }
-    
-    /* --- Overlays on Tile --- */
-    .tile-controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .peer-name { font-size: 14px; font-weight: 500; }
-    .mute-indicator {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background-color: var(--red-accent);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .mute-indicator i { font-size: 14px; }
 
-
-    /* --- Bottom Control Bar --- */
-    #controls-bar {
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    /* Mirror only for local peer */
+    .local-video {
+      transform: scaleX(-1);
     }
-    #controls-center {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .control-btn {
-      background: var(--surface-color);
-      border: none;
-      width: 56px;
-      height: 40px;
-      border-radius: 20px;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: all 0.2s ease-in-out;
-    }
-    .control-btn:hover { background: var(--hover-color); }
-    .control-btn i { color: var(--primary-text); font-size: 20px; }
-
-    #end-call-btn { background-color: var(--red-accent); }
-    #end-call-btn:hover { background-color: var(--red-hover); }
-    .control-btn.toggled-off { background-color: var(--red-accent) !important; }
-    .control-btn.toggled-off:hover { background-color: var(--red-hover) !important; }
-    
   </style>
 </head>
 <body>
+  <div id="peers-container"></div>
 
-  <div id="prejoin-container">
-    <h1>Ready to join?</h1>
-    <button id="join-btn">Join Call</button>
-  </div>
+  <script type="module">
+    import {
+      selectPeers,
+      selectVideoTrackByID,
+    } from "@100mslive/hms-video-store";
 
-  <div id="app-container">
-    <div id="top-bar">
-      <div id="user-info">UserName &nbsp; | &nbsp; 00:00</div>
-      <div id="top-bar-right">
-        <i class="fa-solid fa-users"></i>
-        <span id="participant-count">0</span>
-      </div>
-    </div>
-    
-    <div id="video-grid">
-      <!-- Video tiles will be dynamically inserted here -->
-    </div>
+    // assume hmsStore and hmsActions are initialized when you join the room
+    const peersContainer = document.getElementById("peers-container");
+    const renderedPeerIDs = new Set();
 
-    <div id="controls-bar">
-      <div id="controls-center">
-        <button class="control-btn" id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
-        <button class="control-btn" id="end-call-btn"><i class="fa-solid fa-phone"></i></button>
-        <button class="control-btn" id="cam-btn"><i class="fa-solid fa-video"></i></button>
-      </div>
-    </div>
-  </div>
+    function renderPeer(peer) {
+      const tile = document.createElement("div");
+      tile.className = "video-tile";
+      tile.id = `tile-${peer.id}`;
 
-  <script>
-    let hmsManager, hmsStore, hmsActions;
-    const { 
-      selectPeers, 
-      selectIsLocalAudioEnabled, 
-      selectIsLocalVideoEnabled
-    } = window.HMSReactiveStore;
-
-    const prejoinContainer = document.getElementById('prejoin-container');
-    const appContainer = document.getElementById('app-container');
-    const joinBtn = document.getElementById('join-btn');
-    const videoGrid = document.getElementById('video-grid');
-    const participantCountEl = document.getElementById('participant-count');
-
-    joinBtn.addEventListener('click', () => {
-      prejoinContainer.style.display = 'none';
-      appContainer.style.display = 'flex';
-      initHMS();
-    });
-
-    async function initHMS() {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get('roomId');
-        const userName = params.get('userName') || 'Guest';
-        if (!roomId) throw new Error('Room ID is missing from URL!');
-        document.getElementById('user-info').innerText = `${userName}  |  00:00`;
-
-        hmsManager = new window.HMSReactiveStore();
-        hmsManager.triggerOnSubscribe();
-        hmsStore = hmsManager.getStore();
-        hmsActions = hmsManager.getHMSActions();
-
-        const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
-        await hmsActions.join({ userName, authToken });
-        
-        hmsStore.subscribe(renderPeers, selectPeers);
-        hmsStore.subscribe(updateMicButton, selectIsLocalAudioEnabled);
-        hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
-      } catch (error) {
-        console.error("HMS Init Error:", error);
-        alert(`Error: ${error.message}`);
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      if (peer.isLocal) {
+        video.muted = true;
+        video.classList.add("local-video");
       }
+
+      const overlay = document.createElement("div");
+      overlay.className = "video-overlay";
+      overlay.textContent = peer.isLocal ? "You" : peer.name;
+
+      // avatar if no video track
+      const avatar = document.createElement("div");
+      avatar.className = "avatar-circle";
+      avatar.innerText = peer.name.charAt(0).toUpperCase();
+      tile.appendChild(avatar);
+
+      // subscribe to video track updates
+      hmsStore.subscribe((track) => {
+        if (!track) return;
+        if (track.enabled) {
+          hmsActions.attachVideo(track.id, video);
+          avatar.style.display = "none";
+          if (!video.isConnected) {
+            tile.appendChild(video);
+            tile.appendChild(overlay);
+            video.isConnected = true;
+          }
+        } else {
+          hmsActions.detachVideo(track.id, video);
+          avatar.style.display = "flex";
+        }
+      }, selectVideoTrackByID(peer.videoTrack));
+
+      renderedPeerIDs.add(peer.id);
+      peersContainer.appendChild(tile);
     }
-    
+
     function renderPeers(peers) {
-        // --- THIS IS THE CRITICAL FIX for "TypeError: peers.forEach is not a function" ---
-        if (!Array.isArray(peers)) return;
-
-        videoGrid.innerHTML = '';
-        participantCountEl.innerText = peers.length;
-
-        peers.forEach(peer => {
-            const tile = document.createElement('div');
-            tile.className = 'video-tile';
-            if (peer.isLocal) tile.classList.add('local');
-
-            const videoEl = document.createElement('video');
-            videoEl.autoplay = true;
-            videoEl.muted = true;
-            videoEl.playsinline = true;
-
-            const avatarEl = document.createElement('div');
-            avatarEl.className = 'avatar-placeholder';
-            avatarEl.innerHTML = `<i class="fa-solid fa-camera"></i>`;
-            
-            tile.appendChild(avatarEl); // Add avatar first, as a background
-            tile.appendChild(videoEl); // Video will overlay it
-
-            if (peer.videoTrack) {
-                hmsActions.attachVideo(peer.videoTrack, videoEl);
-            }
-
-            const controls = document.createElement('div');
-            controls.className = 'tile-controls';
-
-            const name = document.createElement('span');
-            name.className = 'peer-name';
-            name.innerText = peer.isLocal ? 'You' : peer.name;
-            controls.appendChild(name);
-
-            // Show mute icon if audio is disabled
-            const isAudioEnabled = peer.audioTrack ? hmsStore.getState(s => s.tracks[peer.audioTrack]?.enabled) : false;
-            if (!isAudioEnabled) {
-                const muteIndicator = document.createElement('div');
-                muteIndicator.className = 'mute-indicator';
-                muteIndicator.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
-                controls.appendChild(muteIndicator);
-            }
-            
-            tile.appendChild(controls);
-            videoGrid.appendChild(tile);
-        });
+      peers.forEach((peer) => {
+        if (!renderedPeerIDs.has(peer.id) && peer.videoTrack) {
+          console.log(`Rendering peer: ${peer.name}`);
+          renderPeer(peer);
+        }
+      });
     }
 
-    function updateMicButton(isEnabled) {
-        const micBtn = document.getElementById('mic-btn');
-        micBtn.classList.toggle('toggled-off', !isEnabled);
-        micBtn.querySelector('i').className = isEnabled ? 'fa-solid fa-microphone' : 'fa-solid fa-microphone-slash';
-    }
-
-    function updateCamButton(isEnabled) {
-        const camBtn = document.getElementById('cam-btn');
-        camBtn.classList.toggle('toggled-off', !isEnabled);
-        camBtn.querySelector('i').className = isEnabled ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
-    }
-
-    // --- Controls ---
-    document.getElementById('mic-btn').addEventListener('click', () => {
-      hmsActions.setLocalAudioEnabled(!hmsStore.getState(selectIsLocalAudioEnabled));
-    });
-    document.getElementById('cam-btn').addEventListener('click', () => {
-      hmsActions.setLocalVideoEnabled(!hmsStore.getState(selectIsLocalVideoEnabled));
-    });
-    document.getElementById('end-call-btn').addEventListener('click', async () => {
-      await hmsActions.leave();
-      // Reload or redirect to a 'left call' page
-      window.location.reload();
-    });
-
-    window.onbeforeunload = () => { if (hmsActions) hmsActions.leave(); };
+    // Subscribe to peers list
+    hmsStore.subscribe(renderPeers, selectPeers);
   </script>
 </body>
 </html>
