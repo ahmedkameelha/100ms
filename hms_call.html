@@ -5,20 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Call</title>
   
+  <!-- This script MUST come BEFORE your hms-bundle.js -->
   <script>
-    // FIX: Define the missing 'process' variable before loading the bundle.
     window.process = { env: { NODE_ENV: 'production' } };
   </script>
 
-  <!-- Load your existing script from your specific commit hash -->
+  <!-- IMPORTANT: PASTE YOUR SCRIPT URL HERE -->
   <script src="https://cdn.jsdelivr.net/gh/ahmedkameelha/hmsweb@f09a25e53fb1f373631533a97e763cf1bde205e4/hms-bundle.js"></script>
   
+  <!-- Fonts and Icons for the Google Meet look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   
   <style>
+    /* --- Base Styles & Google Meet Theme --- */
     :root {
       --bg-color: #202124;
       --surface-color: #3c4043;
@@ -38,6 +40,8 @@
       font-family: var(--font-family);
       overflow: hidden;
     }
+
+    /* --- Main Layout --- */
     #container {
       width: 100%;
       height: 100%;
@@ -46,6 +50,8 @@
       justify-content: center;
       align-items: center;
     }
+
+    /* --- Video Tiles --- */
     .video-tile {
       position: absolute;
       background-color: #282a2d;
@@ -57,25 +63,28 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* Mirror local video */
     }
-    #remote-tile video {
-        transform: scaleX(1); /* Do not mirror remote video */
+    #local-tile video {
+        transform: scaleX(-1); /* Mirror local video */
     }
+
     #remote-tile {
       width: 100%;
       height: 100%;
       top: 0;
       left: 0;
     }
+    
     #local-tile {
-      width: 240px;
-      height: 135px;
+      width: clamp(180px, 20vw, 240px);
+      height: clamp(101px, 11.25vw, 135px);
       top: 16px;
       right: 16px;
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
+
+    /* --- Animated Speaking Indicator --- */
     @keyframes pulse {
         0% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(138, 180, 248, 0); }
@@ -95,6 +104,8 @@
     .video-tile.speaking .speaking-indicator {
         opacity: 1;
     }
+
+    /* --- Avatar Placeholders --- */
     .avatar-placeholder {
       width: 100%;
       height: 100%;
@@ -124,6 +135,8 @@
         color: var(--secondary-text);
         font-size: 16px;
     }
+
+    /* --- Overlays --- */
     .video-overlay {
       position: absolute;
       bottom: 8px;
@@ -136,9 +149,10 @@
       border-radius: 20px;
       font-size: 14px;
       font-weight: 500;
-      pointer-events: none;
     }
     .mute-icon { font-size: 14px; color: var(--primary-text); }
+
+    /* --- Control Bar --- */
     #controls {
       position: absolute;
       bottom: 24px;
@@ -155,6 +169,8 @@
       opacity: 1;
       visibility: visible;
     }
+
+    /* --- Control Buttons & Tooltips --- */
     .btn-wrapper { position: relative; }
     .btn {
       background: var(--surface-color);
@@ -171,6 +187,7 @@
     .btn.toggled-off:hover { background-color: #d93025 !important; }
     #endBtn { background-color: var(--red-accent); }
     #endBtn:hover { background-color: #d93025; }
+
     .tooltip {
         position: absolute;
         bottom: 110%;
@@ -185,11 +202,14 @@
         opacity: 0;
         visibility: hidden;
         transition: opacity 0.2s, visibility 0.2s;
+        pointer-events: none;
     }
     .btn-wrapper:hover .tooltip {
         opacity: 1;
         visibility: visible;
     }
+    
+    /* --- Status Text --- */
     #status {
       font-size: 20px;
       color: var(--secondary-text);
@@ -304,19 +324,15 @@
         updateTile('remote', remotePeer);
     }
     
-    // --- THIS FUNCTION IS NOW FIXED ---
     function updateTile(tileType, peer) {
         const videoEl = document.getElementById(`${tileType}Video`);
         const avatarPlaceholder = document.querySelector(`#${tileType}-tile .avatar-placeholder`);
         
-        // **FIX**: The most reliable way to check for a usable video track.
-        // We check if the track exists and if its 'enabled' property is true.
         const isVideoAvailable = peer && peer.videoTrack && peer.videoTrack.enabled;
         
         if (isVideoAvailable) {
             videoEl.style.display = 'block';
             avatarPlaceholder.style.display = 'none';
-            // Only assign the srcObject if it's different to prevent glitches
             if (videoEl.srcObject !== peer.videoTrack.stream) {
                 videoEl.srcObject = peer.videoTrack.stream;
             }
@@ -334,7 +350,6 @@
             if(peer) {
                 nameTag.innerText = peer.name;
                 remoteAvatar.innerText = peer.name.charAt(0).toUpperCase();
-                // **FIX**: Check audioTrack.enabled for mute status
                 muteIcon.style.display = (peer.audioTrack && peer.audioTrack.enabled) ? 'none' : 'block';
                 remoteWaitingText.style.display = 'none';
             } else {
