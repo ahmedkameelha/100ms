@@ -1,4 +1,6 @@
+// hms_app.js
 let hmsManager, hmsStore, hmsActions;
+
 const videoGrid = document.getElementById('video-grid');
 const statusContainer = document.getElementById('status-container');
 const statusEl = document.getElementById('status');
@@ -16,16 +18,30 @@ async function initHMS() {
     const userName = params.get('userName') || 'Guest';
     if (!roomId) throw new Error('Room ID missing!');
 
-    hmsManager = new window.HMSReactiveStore();
+    if (!window.HMSReactiveStore) {
+      throw new Error('HMS SDK not loaded. Make sure hms-bundle.bundle.js is included.');
+    }
+
+    // Initialize store
+    const { HMSReactiveStore } = window;
+    hmsManager = new HMSReactiveStore();
     hmsManager.triggerOnSubscribe();
     hmsStore = hmsManager.getStore();
     hmsActions = hmsManager.getHMSActions();
 
+    // Destructure selectors safely
+    const {
+      selectPeers,
+      selectIsLocalAudioEnabled,
+      selectIsLocalVideoEnabled,
+      selectIsConnectedToRoom
+    } = HMSReactiveStore;
+
+    // Join room
     const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
     await hmsActions.join({ userName, authToken });
 
-    // subscribe safely
-    const { selectPeers, selectIsLocalAudioEnabled, selectIsLocalVideoEnabled, selectIsConnectedToRoom } = window.HMSReactiveStore;
+    // Subscribe
     hmsStore.subscribe(renderPeers, selectPeers);
     hmsStore.subscribe(updateMicButton, selectIsLocalAudioEnabled);
     hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
@@ -34,6 +50,7 @@ async function initHMS() {
   } catch (err) {
     console.error(err);
     statusEl.innerText = `Error: ${err.message}`;
+    joinBtn.style.display = 'inline-block';
   }
 }
 
@@ -105,6 +122,7 @@ function updateCamButton(isEnabled) {
   camBtn.querySelector('i').className = isEnabled ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
 }
 
+// Button event handlers
 document.getElementById('mic-btn').addEventListener('click', () => {
   hmsActions.setLocalAudioEnabled(!hmsStore.getState(window.HMSReactiveStore.selectIsLocalAudioEnabled));
 });
@@ -114,7 +132,7 @@ document.getElementById('cam-btn').addEventListener('click', () => {
 });
 
 document.getElementById('end-call-btn').addEventListener('click', async () => {
-  await hmsActions.leave();
+  if (hmsActions) await hmsActions.leave();
   statusContainer.style.display = 'flex';
   statusEl.innerText = 'You have left the room.';
 });
