@@ -5,167 +5,230 @@
   <title>100ms Video Call</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- 100ms JS SDK (using jsDelivr for stability) -->
-  <script src="https://cdn.jsdelivr.net/npm/@100mslive/hms-video-store@latest/dist/hms-video-store.umd.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@100mslive/hms-video@latest/dist/hms-video.umd.js"></script>
+  <!-- ✅ Official 100ms SDK Bundle (contains HMS + HMSReactiveStore) -->
+  <script src="https://cdn.100ms.live/100ms-hms-sdk/0.9.1/hms-bundle.js"></script>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: white;
+    :root {
+      --bg-dark: #202124;
+      --tile-bg: #303134;
+      --surface-color: #3c4043;
+      --hover-color: #4a4b4f;
+      --primary-text: #e8eaed;
+      --secondary-text: #bdc1c6;
+      --red-accent: #ea4335;
+      --red-hover: #d93025;
+      --blue-accent: #8ab4f8;
+      --font-family: 'Roboto', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-dark);
+      color: var(--primary-text);
+      font-family: var(--font-family);
+      overflow: hidden;
+    }
+
+    #app-container {
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
-
-    #status-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 12px;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.6);
+    #top-bar {
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--secondary-text);
       font-size: 14px;
-      z-index: 5;
     }
+    #top-bar i { font-size: 16px; margin-left: 4px; }
 
     #video-grid {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 8px;
-      padding: 10px;
+      flex-grow: 1;
+      width: 100%;
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     .video-tile {
       position: relative;
-      background: #1e293b;
+      background-color: var(--tile-bg);
       border-radius: 12px;
       overflow: hidden;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      width: 45%;
+      max-width: 640px;
+      min-width: 300px;
+      aspect-ratio: 16 / 9;
+      transition: all 0.3s ease;
     }
-
     .video-tile video {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: none;
+    }
+    .video-tile.local video {
+      transform: scaleX(-1);
     }
 
     .avatar-placeholder {
-      width: 80px;
-      height: 80px;
-      background: #334155;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background-color: var(--surface-color);
+      font-size: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 500;
+    }
+    .tile-overlay {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .mute-icon {
+      width: 28px;
+      height: 28px;
+      background-color: rgba(0,0,0,0.6);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
     }
+    .mute-icon i { font-size: 14px; color: var(--red-accent); }
 
-    .tile-overlay {
-      position: absolute;
-      bottom: 6px;
-      left: 6px;
-      right: 6px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-    }
-
-    .mute-icon {
-      color: red;
-    }
-
-    #controls {
+    #controls-bar {
+      padding: 16px;
       display: flex;
       justify-content: center;
-      gap: 20px;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.6);
+      align-items: center;
     }
-
-    #controls button {
-      background: #1e293b;
-      color: white;
+    #controls-center {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .control-btn {
+      background: var(--surface-color);
       border: none;
-      border-radius: 50%;
       width: 48px;
       height: 48px;
-      font-size: 18px;
+      border-radius: 50%;
       cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s ease-in-out;
     }
+    .control-btn:hover { background: var(--hover-color); }
+    .control-btn i { color: var(--primary-text); font-size: 20px; }
+    #end-call-btn { background-color: var(--red-accent); }
+    #end-call-btn:hover { background-color: var(--red-hover); }
+    .control-btn.toggled-off { background-color: var(--red-accent) !important; }
+    .control-btn.toggled-off:hover { background-color: var(--red-hover) !important; }
 
-    #controls button.toggled-off {
-      background: #ef4444;
+    #status-container {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-dark);
+      z-index: 100;
+      transition: opacity 0.5s;
+      flex-direction: column;
+      gap: 12px;
     }
-
+    #status { font-size: 20px; color: var(--secondary-text); }
     #join-btn {
-      background: #22c55e;
-      color: white;
-      border: none;
       padding: 12px 20px;
       border-radius: 8px;
+      background: var(--blue-accent);
+      color: black;
+      border: none;
       cursor: pointer;
       font-size: 16px;
-      margin: 20px auto;
-      display: block;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <div id="status-container">
-    <span id="status">Waiting to join...</span>
-  </div>
+  <div id="app-container">
+    <div id="top-bar">
+      <div id="user-info">UserName | 00:00</div>
+      <div><i class="fa-solid fa-users"></i> <span id="participant-count">0</span></div>
+    </div>
 
-  <button id="join-btn">Join Call</button>
+    <div id="video-grid"></div>
 
-  <div id="video-grid"></div>
+    <div id="controls-bar">
+      <div id="controls-center">
+        <button class="control-btn" id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
+        <button class="control-btn" id="cam-btn"><i class="fa-solid fa-video"></i></button>
+        <button class="control-btn" id="end-call-btn"><i class="fa-solid fa-phone"></i></button>
+      </div>
+    </div>
 
-  <div id="controls" style="display:none;">
-    <button id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
-    <button id="cam-btn"><i class="fa-solid fa-video"></i></button>
-    <button id="end-call-btn" style="background:#ef4444;"><i class="fa-solid fa-phone-slash"></i></button>
+    <div id="status-container">
+      <div id="status">Ready to join</div>
+      <button id="join-btn">Join Call</button>
+    </div>
   </div>
 
   <script>
     let hmsManager, hmsStore, hmsActions;
     const { HMSReactiveStore } = window;
-    const {
-      selectPeers,
-      selectIsLocalAudioEnabled,
-      selectIsLocalVideoEnabled,
-      selectIsConnectedToRoom
-    } = HMSReactiveStore;
 
+    if (!HMSReactiveStore) {
+      document.getElementById("status").innerText =
+        "Failed to load 100ms SDK. Check your network or CDN.";
+      document.getElementById("join-btn").style.display = "none";
+      throw new Error("HMSReactiveStore is undefined. SDK not loaded.");
+    }
+
+    const { selectPeers, selectIsLocalAudioEnabled, selectIsLocalVideoEnabled, selectIsConnectedToRoom } = HMSReactiveStore;
+
+    const statusContainer = document.getElementById("status-container");
     const statusEl = document.getElementById("status");
     const videoGrid = document.getElementById("video-grid");
-    const controls = document.getElementById("controls");
-    const joinBtn = document.getElementById("join-btn");
+    const participantCountEl = document.getElementById("participant-count");
 
     async function initHMS() {
-      const params = new URLSearchParams(window.location.search);
-      const roomId = params.get("roomId");
-      const userName = params.get("userName") || "Guest";
-
-      if (!roomId) {
-        statusEl.innerText = "Error: Missing roomId in URL.";
-        return;
-      }
-
-      hmsManager = new HMSReactiveStore();
-      hmsManager.triggerOnSubscribe();
-      hmsStore = hmsManager.getStore();
-      hmsActions = hmsManager.getHMSActions();
-
       try {
+        const params = new URLSearchParams(window.location.search);
+        const roomId = params.get("roomId");
+        const userName = params.get("userName") || "Guest";
+        if (!roomId) throw new Error("Room ID missing from URL!");
+        document.getElementById("user-info").innerText = `${userName} | 00:00`;
+
+        hmsManager = new HMSReactiveStore();
+        hmsManager.triggerOnSubscribe();
+        hmsStore = hmsManager.getStore();
+        hmsActions = hmsManager.getHMSActions();
+
         const authToken = await hmsActions.getAuthTokenByRoomCode({ roomCode: roomId });
         await hmsActions.join({ userName, authToken });
 
@@ -175,32 +238,29 @@
         hmsStore.subscribe(updateCamButton, selectIsLocalVideoEnabled);
       } catch (err) {
         console.error("HMS Init Error:", err);
-        statusEl.innerText = "Join failed: " + err.message;
+        statusEl.innerText = `Error: ${err.message}`;
       }
     }
 
     function onConnectionUpdate(isConnected) {
       if (isConnected) {
-        statusEl.innerText = "Connected!";
-        controls.style.display = "flex";
-
-        // Enable video + audio after connection
-        hmsActions.setLocalVideoEnabled(true);
-        hmsActions.setLocalAudioEnabled(true);
+        statusContainer.style.opacity = "0";
+        statusContainer.style.pointerEvents = "none";
       } else {
-        statusEl.innerText = "Disconnected.";
         videoGrid.innerHTML = "";
-        controls.style.display = "none";
+        statusContainer.style.opacity = "1";
+        statusContainer.style.pointerEvents = "auto";
       }
     }
 
     function renderPeers(peers) {
-      if (!Array.isArray(peers)) return;
       videoGrid.innerHTML = "";
+      participantCountEl.innerText = peers.length;
 
       peers.forEach(peer => {
         const tile = document.createElement("div");
         tile.className = "video-tile";
+        if (peer.isLocal) tile.classList.add("local");
 
         const videoEl = document.createElement("video");
         videoEl.autoplay = true;
@@ -214,19 +274,28 @@
         tile.appendChild(videoEl);
         tile.appendChild(avatarEl);
 
-        if (peer.videoTrack && peer.videoTrack.enabled) {
-          hmsActions.attachVideo(peer.videoTrack.trackId, videoEl)
-            .then(() => {
-              avatarEl.style.display = "none";
-              videoEl.style.display = "block";
-            });
+        if (peer.videoTrack) {
+          hmsActions.attachVideo(peer.videoTrack, videoEl).then(() => {
+            avatarEl.style.display = "none";
+            videoEl.style.display = "block";
+          });
+        } else {
+          avatarEl.style.display = "flex";
+          videoEl.style.display = "none";
         }
 
         const overlay = document.createElement("div");
         overlay.className = "tile-overlay";
-        overlay.innerHTML = `<span>${peer.isLocal ? "You" : peer.name}</span>`;
-        if (!peer.audioTrack || !peer.audioTrack.enabled) {
-          overlay.innerHTML += `<div class="mute-icon"><i class="fa-solid fa-microphone-slash"></i></div>`;
+
+        const name = document.createElement("span");
+        name.innerText = peer.isLocal ? "You" : peer.name;
+        overlay.appendChild(name);
+
+        if (!peer.isLocal && !peer.audioTrack) {
+          const muteIcon = document.createElement("div");
+          muteIcon.className = "mute-icon";
+          muteIcon.innerHTML = `<i class="fa-solid fa-microphone-slash"></i>`;
+          overlay.appendChild(muteIcon);
         }
 
         tile.appendChild(overlay);
@@ -235,36 +304,37 @@
     }
 
     function updateMicButton(isEnabled) {
-      const btn = document.getElementById("mic-btn");
-      btn.classList.toggle("toggled-off", !isEnabled);
-      btn.querySelector("i").className = isEnabled ? "fa-solid fa-microphone" : "fa-solid fa-microphone-slash";
+      const micBtn = document.getElementById("mic-btn");
+      micBtn.classList.toggle("toggled-off", !isEnabled);
+      micBtn.querySelector("i").className =
+        isEnabled ? "fa-solid fa-microphone" : "fa-solid fa-microphone-slash";
     }
 
     function updateCamButton(isEnabled) {
-      const btn = document.getElementById("cam-btn");
-      btn.classList.toggle("toggled-off", !isEnabled);
-      btn.querySelector("i").className = isEnabled ? "fa-solid fa-video" : "fa-solid fa-video-slash";
+      const camBtn = document.getElementById("cam-btn");
+      camBtn.classList.toggle("toggled-off", !isEnabled);
+      camBtn.querySelector("i").className =
+        isEnabled ? "fa-solid fa-video" : "fa-solid fa-video-slash";
     }
+
+    document.getElementById("join-btn").addEventListener("click", async () => {
+      await initHMS();
+    });
 
     document.getElementById("mic-btn").addEventListener("click", () => {
       hmsActions.setLocalAudioEnabled(!hmsStore.getState(selectIsLocalAudioEnabled));
     });
-
     document.getElementById("cam-btn").addEventListener("click", () => {
       hmsActions.setLocalVideoEnabled(!hmsStore.getState(selectIsLocalVideoEnabled));
     });
-
     document.getElementById("end-call-btn").addEventListener("click", async () => {
       await hmsActions.leave();
+      statusEl.innerText = "You have left the room.";
+      statusContainer.style.opacity = "1";
+      statusContainer.style.pointerEvents = "auto";
     });
 
-    joinBtn.addEventListener("click", async () => {
-      joinBtn.style.display = "none";
-      if (window.HMS?.media?.audioContext?.state === "suspended") {
-        await window.HMS.media.audioContext.resume();
-      }
-      initHMS();
-    });
+    window.onbeforeunload = () => { if (hmsActions) hmsActions.leave(); };
   </script>
 </body>
 </html>
