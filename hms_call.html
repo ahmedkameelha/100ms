@@ -2,41 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Call</title>
-
-  <!-- Local CSS -->
-  <link rel="stylesheet" href="./css/styles.css">
-
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <title>100MS Call</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script defer src="hms-bundle.bundle.js"></script>
+  <script defer src="js/hms_app.js"></script>
 </head>
 <body>
-  <div id="app-container">
-    <div id="top-bar">
-      <div id="user-info">UserName &nbsp; | &nbsp; 00:00</div>
-      <div><i class="fa-solid fa-users"></i> <span id="participant-count">0</span></div>
-    </div>
-
-    <div id="status-container">
-      <div id="status">Click "Join Room" to start</div>
-      <button id="join-btn">Join Room</button>
-    </div>
-
-    <div id="video-grid"></div>
-
-    <div id="controls-bar">
-      <div id="controls-center">
-        <button class="control-btn" id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
-        <button class="control-btn" id="cam-btn"><i class="fa-solid fa-video"></i></button>
-        <button class="control-btn" id="end-call-btn"><i class="fa-solid fa-phone"></i></button>
-      </div>
-    </div>
+  <div id="status-container">
+    <span id="status">Not connected</span>
+    <button id="join-btn">Join Room</button>
   </div>
-
-  <!-- Local HMS SDK bundle -->
- <script src="./hms-bundle.bundle.js"></script>
- <script src="./js/hms_app.js"></script>
-
+  <div id="video-grid"></div>
+  <div id="controls">
+    <button id="mic-btn"><i class="fa-solid fa-microphone"></i></button>
+    <button id="cam-btn"><i class="fa-solid fa-video"></i></button>
+    <button id="end-call-btn">End Call</button>
+  </div>
 </body>
 </html>
