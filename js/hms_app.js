@@ -22,8 +22,8 @@ async function initHMS() {
     joinBtn.style.display = 'none';
     statusEl.innerText = 'Connecting...';
 
-    // Must resume AudioContext after user gesture
-    if (window.AudioContext && window.audioContext === undefined) {
+    // Resume AudioContext after user gesture
+    if (window.AudioContext && !window.audioContext) {
       window.audioContext = new AudioContext();
       if (window.audioContext.state === 'suspended') await window.audioContext.resume();
     }
@@ -74,7 +74,8 @@ function renderPeers(peersMap) {
 
     const avatarEl = document.createElement('div');
     avatarEl.className = 'avatar-placeholder';
-    avatarEl.innerText = peer.name.charAt(0).toUpperCase();
+    const displayName = peer.name || '?'; // Safe fallback
+    avatarEl.innerText = displayName.charAt(0).toUpperCase();
 
     tile.appendChild(videoEl);
     tile.appendChild(avatarEl);
@@ -84,9 +85,9 @@ function renderPeers(peersMap) {
         avatarEl.style.display = 'none';
         videoEl.style.display = 'block';
       }).catch(e => {
-        console.error(`Video attach error for ${peer.name}:`, e);
         avatarEl.style.display = 'flex';
         videoEl.style.display = 'none';
+        console.error(`Video attach error for ${displayName}:`, e);
       });
     } else {
       avatarEl.style.display = 'flex';
@@ -96,7 +97,7 @@ function renderPeers(peersMap) {
     const overlay = document.createElement('div');
     overlay.className = 'tile-overlay';
     const name = document.createElement('span');
-    name.innerText = peer.isLocal ? 'You' : peer.name;
+    name.innerText = peer.isLocal ? 'You' : displayName;
     overlay.appendChild(name);
 
     if (!peer.isLocal && (!peer.audioTrack || !peer.audioTrack.enabled)) {
