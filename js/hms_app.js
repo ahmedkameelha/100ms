@@ -1,6 +1,5 @@
 let hmsManager, hmsStore, hmsActions;
 
-// Ensure HMSReactiveStore exists
 if (!window.HMSReactiveStore) throw new Error('HMSReactiveStore not loaded');
 
 const {
@@ -22,7 +21,7 @@ async function initHMS() {
     joinBtn.style.display = 'none';
     statusEl.innerText = 'Connecting...';
 
-    // Resume AudioContext after user gesture
+    // Resume AudioContext for autoplay
     if (window.AudioContext && !window.audioContext) {
       window.audioContext = new AudioContext();
       if (window.audioContext.state === 'suspended') await window.audioContext.resume();
@@ -57,38 +56,33 @@ function onConnectionUpdate(isConnected) {
   statusContainer.style.display = isConnected ? 'none' : 'flex';
 }
 
-function renderPeers(peersMap) {
+function renderPeers(peersData) {
   videoGrid.innerHTML = '';
-  const peers = Array.isArray(peersMap) ? peersMap : Object.values(peersMap || {});
+  const peers = peersData ? (Array.isArray(peersData) ? peersData : Object.values(peersData)) : [];
   document.getElementById('participant-count').innerText = peers.length;
 
   peers.forEach(peer => {
     const tile = document.createElement('div');
     tile.className = 'video-tile';
-    if (peer.isLocal) tile.classList.add('local');
+    if (peer?.isLocal) tile.classList.add('local');
 
     const videoEl = document.createElement('video');
     videoEl.autoplay = true;
-    videoEl.muted = peer.isLocal;
+    videoEl.muted = peer?.isLocal;
     videoEl.playsInline = true;
 
     const avatarEl = document.createElement('div');
     avatarEl.className = 'avatar-placeholder';
-    const displayName = peer.name || '?'; // Safe fallback
+    const displayName = peer?.name || '?';
     avatarEl.innerText = displayName.charAt(0).toUpperCase();
 
     tile.appendChild(videoEl);
     tile.appendChild(avatarEl);
 
-    if (peer.videoTrack) {
-      hmsActions.attachVideo(peer.videoTrack, videoEl).then(() => {
-        avatarEl.style.display = 'none';
-        videoEl.style.display = 'block';
-      }).catch(e => {
-        avatarEl.style.display = 'flex';
-        videoEl.style.display = 'none';
-        console.error(`Video attach error for ${displayName}:`, e);
-      });
+    if (peer?.videoTrack) {
+      hmsActions.attachVideo(peer.videoTrack, videoEl)
+        .then(() => { avatarEl.style.display = 'none'; videoEl.style.display = 'block'; })
+        .catch(() => { avatarEl.style.display = 'flex'; videoEl.style.display = 'none'; });
     } else {
       avatarEl.style.display = 'flex';
       videoEl.style.display = 'none';
@@ -96,11 +90,11 @@ function renderPeers(peersMap) {
 
     const overlay = document.createElement('div');
     overlay.className = 'tile-overlay';
-    const name = document.createElement('span');
-    name.innerText = peer.isLocal ? 'You' : displayName;
-    overlay.appendChild(name);
+    const nameSpan = document.createElement('span');
+    nameSpan.innerText = peer?.isLocal ? 'You' : displayName;
+    overlay.appendChild(nameSpan);
 
-    if (!peer.isLocal && (!peer.audioTrack || !peer.audioTrack.enabled)) {
+    if (!peer?.isLocal && (!peer?.audioTrack || !peer.audioTrack.enabled)) {
       const muteIcon = document.createElement('div');
       muteIcon.className = 'mute-icon';
       muteIcon.innerHTML = `<i class="fa-solid fa-microphone-slash"></i>`;
