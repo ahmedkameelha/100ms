@@ -1,0 +1,19 @@
+{
+  "name": "hms-bundle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "@100mslive/hms-video-store": "^0.12.38",
+    "process": "^0.11.10"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
+    "rollup": "^3.20.0"
+  }
+}
