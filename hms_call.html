@@ -3,11 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>v2v</title>
+  <title>100ms</title>
+
+  <!-- Polyfill for process.env -->
+  <script>
+    window.process = { env: { NODE_ENV: 'production' } };
+  </script>
+
   <link rel="stylesheet" href="./css/styles.css">
   <script src="./hms-bundle.bundle.js"></script>
   <script src="./js/hms_app.js" defer></script>
 </head>
+
 <body>
 
   <div id="app-container">
@@ -36,3 +43,4 @@
 
 </body>
 </html>
+
