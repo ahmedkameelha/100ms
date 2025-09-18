@@ -1,5 +1,14 @@
 let hmsManager, hmsStore, hmsActions;
-const { selectPeers, selectIsLocalAudioEnabled, selectIsLocalVideoEnabled, selectIsConnectedToRoom } = window.HMSReactiveStore;
+
+// Ensure HMSReactiveStore exists
+if (!window.HMSReactiveStore) throw new Error('HMSReactiveStore not loaded');
+
+const {
+  selectPeers,
+  selectIsLocalAudioEnabled,
+  selectIsLocalVideoEnabled,
+  selectIsConnectedToRoom
+} = window.HMSReactiveStore;
 
 const videoGrid = document.getElementById('video-grid');
 const statusContainer = document.getElementById('status-container');
@@ -12,6 +21,12 @@ async function initHMS() {
   try {
     joinBtn.style.display = 'none';
     statusEl.innerText = 'Connecting...';
+
+    // Must resume AudioContext after user gesture
+    if (window.AudioContext && window.audioContext === undefined) {
+      window.audioContext = new AudioContext();
+      if (window.audioContext.state === 'suspended') await window.audioContext.resume();
+    }
 
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('roomId');
@@ -34,16 +49,17 @@ async function initHMS() {
   } catch (err) {
     console.error(err);
     statusEl.innerText = `Error: ${err.message}`;
+    joinBtn.style.display = 'block';
   }
 }
 
 function onConnectionUpdate(isConnected) {
-  if(isConnected) statusContainer.style.display = 'none';
-  else statusContainer.style.display = 'flex';
+  statusContainer.style.display = isConnected ? 'none' : 'flex';
 }
 
-function renderPeers(peers) {
+function renderPeers(peersMap) {
   videoGrid.innerHTML = '';
+  const peers = Array.isArray(peersMap) ? peersMap : Object.values(peersMap || {});
   document.getElementById('participant-count').innerText = peers.length;
 
   peers.forEach(peer => {
@@ -67,6 +83,10 @@ function renderPeers(peers) {
       hmsActions.attachVideo(peer.videoTrack, videoEl).then(() => {
         avatarEl.style.display = 'none';
         videoEl.style.display = 'block';
+      }).catch(e => {
+        console.error(`Video attach error for ${peer.name}:`, e);
+        avatarEl.style.display = 'flex';
+        videoEl.style.display = 'none';
       });
     } else {
       avatarEl.style.display = 'flex';
@@ -79,7 +99,7 @@ function renderPeers(peers) {
     name.innerText = peer.isLocal ? 'You' : peer.name;
     overlay.appendChild(name);
 
-    if (!peer.isLocal && !peer.audioTrack) {
+    if (!peer.isLocal && (!peer.audioTrack || !peer.audioTrack.enabled)) {
       const muteIcon = document.createElement('div');
       muteIcon.className = 'mute-icon';
       muteIcon.innerHTML = `<i class="fa-solid fa-microphone-slash"></i>`;
@@ -104,15 +124,18 @@ function updateCamButton(isEnabled) {
 }
 
 document.getElementById('mic-btn').addEventListener('click', () => {
-  hmsActions.setLocalAudioEnabled(!hmsStore.getState(selectIsLocalAudioEnabled));
+  const current = hmsStore.getState(selectIsLocalAudioEnabled);
+  hmsActions.setLocalAudioEnabled(!current);
 });
 
-document.getElementById('cam-btn').addEventListener('click', () => {
-  hmsActions.setLocalVideoEnabled(!hmsStore.getState(selectIsLocalVideoEnabled));
+document.getElementById('cam-btn').addEventListener('click', async () => {
+  const current = hmsStore.getState(selectIsLocalVideoEnabled);
+  await hmsActions.setLocalVideoEnabled(!current);
 });
 
 document.getElementById('end-call-btn').addEventListener('click', async () => {
   await hmsActions.leave();
   statusContainer.style.display = 'flex';
   statusEl.innerText = 'You have left the room.';
+  joinBtn.style.display = 'block';
 });
